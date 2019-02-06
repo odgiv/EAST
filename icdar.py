@@ -9,6 +9,8 @@ import scipy.optimize
 import matplotlib.pyplot as plt
 import matplotlib.patches as Patches
 from shapely.geometry import Polygon
+from numpy.random import choice
+from img_util import rotate_box, rotate_img
 
 import tensorflow as tf
 
@@ -156,8 +158,9 @@ def crop_area(im, polys, tags, crop_background=False, max_tries=50):
             continue
         if polys.shape[0] != 0:
             poly_axis_in_area = (polys[:, :, 0] >= xmin) & (polys[:, :, 0] <= xmax) \
-                                & (polys[:, :, 1] >= ymin) & (polys[:, :, 1] <= ymax)
-            selected_polys = np.where(np.sum(poly_axis_in_area, axis=1) == 4)[0]
+                & (polys[:, :, 1] >= ymin) & (polys[:, :, 1] <= ymax)
+            selected_polys = np.where(
+                np.sum(poly_axis_in_area, axis=1) == 4)[0]
         else:
             selected_polys = []
         if len(selected_polys) == 0:
@@ -188,28 +191,32 @@ def shrink_poly(poly, r):
     R = 0.3
     # find the longer pair
     if np.linalg.norm(poly[0] - poly[1]) + np.linalg.norm(poly[2] - poly[3]) > \
-                    np.linalg.norm(poly[0] - poly[3]) + np.linalg.norm(poly[1] - poly[2]):
+            np.linalg.norm(poly[0] - poly[3]) + np.linalg.norm(poly[1] - poly[2]):
         # first move (p0, p1), (p2, p3), then (p0, p3), (p1, p2)
         ## p0, p1
-        theta = np.arctan2((poly[1][1] - poly[0][1]), (poly[1][0] - poly[0][0]))
+        theta = np.arctan2((poly[1][1] - poly[0][1]),
+                           (poly[1][0] - poly[0][0]))
         poly[0][0] += R * r[0] * np.cos(theta)
         poly[0][1] += R * r[0] * np.sin(theta)
         poly[1][0] -= R * r[1] * np.cos(theta)
         poly[1][1] -= R * r[1] * np.sin(theta)
         ## p2, p3
-        theta = np.arctan2((poly[2][1] - poly[3][1]), (poly[2][0] - poly[3][0]))
+        theta = np.arctan2((poly[2][1] - poly[3][1]),
+                           (poly[2][0] - poly[3][0]))
         poly[3][0] += R * r[3] * np.cos(theta)
         poly[3][1] += R * r[3] * np.sin(theta)
         poly[2][0] -= R * r[2] * np.cos(theta)
         poly[2][1] -= R * r[2] * np.sin(theta)
         ## p0, p3
-        theta = np.arctan2((poly[3][0] - poly[0][0]), (poly[3][1] - poly[0][1]))
+        theta = np.arctan2((poly[3][0] - poly[0][0]),
+                           (poly[3][1] - poly[0][1]))
         poly[0][0] += R * r[0] * np.sin(theta)
         poly[0][1] += R * r[0] * np.cos(theta)
         poly[3][0] -= R * r[3] * np.sin(theta)
         poly[3][1] -= R * r[3] * np.cos(theta)
         ## p1, p2
-        theta = np.arctan2((poly[2][0] - poly[1][0]), (poly[2][1] - poly[1][1]))
+        theta = np.arctan2((poly[2][0] - poly[1][0]),
+                           (poly[2][1] - poly[1][1]))
         poly[1][0] += R * r[1] * np.sin(theta)
         poly[1][1] += R * r[1] * np.cos(theta)
         poly[2][0] -= R * r[2] * np.sin(theta)
@@ -217,25 +224,29 @@ def shrink_poly(poly, r):
     else:
         ## p0, p3
         # print poly
-        theta = np.arctan2((poly[3][0] - poly[0][0]), (poly[3][1] - poly[0][1]))
+        theta = np.arctan2((poly[3][0] - poly[0][0]),
+                           (poly[3][1] - poly[0][1]))
         poly[0][0] += R * r[0] * np.sin(theta)
         poly[0][1] += R * r[0] * np.cos(theta)
         poly[3][0] -= R * r[3] * np.sin(theta)
         poly[3][1] -= R * r[3] * np.cos(theta)
         ## p1, p2
-        theta = np.arctan2((poly[2][0] - poly[1][0]), (poly[2][1] - poly[1][1]))
+        theta = np.arctan2((poly[2][0] - poly[1][0]),
+                           (poly[2][1] - poly[1][1]))
         poly[1][0] += R * r[1] * np.sin(theta)
         poly[1][1] += R * r[1] * np.cos(theta)
         poly[2][0] -= R * r[2] * np.sin(theta)
         poly[2][1] -= R * r[2] * np.cos(theta)
         ## p0, p1
-        theta = np.arctan2((poly[1][1] - poly[0][1]), (poly[1][0] - poly[0][0]))
+        theta = np.arctan2((poly[1][1] - poly[0][1]),
+                           (poly[1][0] - poly[0][0]))
         poly[0][0] += R * r[0] * np.cos(theta)
         poly[0][1] += R * r[0] * np.sin(theta)
         poly[1][0] -= R * r[1] * np.cos(theta)
         poly[1][1] -= R * r[1] * np.sin(theta)
         ## p2, p3
-        theta = np.arctan2((poly[2][1] - poly[3][1]), (poly[2][0] - poly[3][0]))
+        theta = np.arctan2((poly[2][1] - poly[3][1]),
+                           (poly[2][0] - poly[3][0]))
         poly[3][0] += R * r[3] * np.cos(theta)
         poly[3][1] += R * r[3] * np.sin(theta)
         poly[2][0] -= R * r[2] * np.cos(theta)
@@ -298,16 +309,17 @@ def rectangle_from_parallelogram(poly):
     :return:
     '''
     p0, p1, p2, p3 = poly
-    angle_p0 = np.arccos(np.dot(p1-p0, p3-p0)/(np.linalg.norm(p0-p1) * np.linalg.norm(p3-p0)))
+    angle_p0 = np.arccos(np.dot(p1-p0, p3-p0) /
+                         (np.linalg.norm(p0-p1) * np.linalg.norm(p3-p0)))
     if angle_p0 < 0.5 * np.pi:
         if np.linalg.norm(p0 - p1) > np.linalg.norm(p0-p3):
             # p0 and p2
-            ## p0
+            # p0
             p2p3 = fit_line([p2[0], p3[0]], [p2[1], p3[1]])
             p2p3_verticle = line_verticle(p2p3, p0)
 
             new_p3 = line_cross_point(p2p3, p2p3_verticle)
-            ## p2
+            # p2
             p0p1 = fit_line([p0[0], p1[0]], [p0[1], p1[1]])
             p0p1_verticle = line_verticle(p0p1, p2)
 
@@ -326,12 +338,12 @@ def rectangle_from_parallelogram(poly):
     else:
         if np.linalg.norm(p0-p1) > np.linalg.norm(p0-p3):
             # p1 and p3
-            ## p1
+            # p1
             p2p3 = fit_line([p2[0], p3[0]], [p2[1], p3[1]])
             p2p3_verticle = line_verticle(p2p3, p1)
 
             new_p2 = line_cross_point(p2p3, p2p3_verticle)
-            ## p3
+            # p3
             p0p1 = fit_line([p0[0], p1[0]], [p0[1], p1[1]])
             p0p1_verticle = line_verticle(p0p1, p3)
 
@@ -364,7 +376,8 @@ def sort_rectangle(poly):
         # 找到最低点右边的点 - find the point that sits right to the lowest point
         p_lowest_right = (p_lowest - 1) % 4
         p_lowest_left = (p_lowest + 1) % 4
-        angle = np.arctan(-(poly[p_lowest][1] - poly[p_lowest_right][1])/(poly[p_lowest][0] - poly[p_lowest_right][0]))
+        angle = np.arctan(-(poly[p_lowest][1] - poly[p_lowest_right]
+                            [1])/(poly[p_lowest][0] - poly[p_lowest_right][0]))
         # assert angle > 0
         if angle <= 0:
             print(angle, poly[p_lowest], poly[p_lowest_right])
@@ -399,14 +412,20 @@ def restore_rectangle_rbox(origin, geometry):
                       d_0[:, 3], -d_0[:, 2]])
         p = p.transpose((1, 0)).reshape((-1, 5, 2))  # N*5*2
 
-        rotate_matrix_x = np.array([np.cos(angle_0), np.sin(angle_0)]).transpose((1, 0))
-        rotate_matrix_x = np.repeat(rotate_matrix_x, 5, axis=1).reshape(-1, 2, 5).transpose((0, 2, 1))  # N*5*2
+        rotate_matrix_x = np.array(
+            [np.cos(angle_0), np.sin(angle_0)]).transpose((1, 0))
+        rotate_matrix_x = np.repeat(
+            rotate_matrix_x, 5, axis=1).reshape(-1, 2, 5).transpose((0, 2, 1))  # N*5*2
 
-        rotate_matrix_y = np.array([-np.sin(angle_0), np.cos(angle_0)]).transpose((1, 0))
-        rotate_matrix_y = np.repeat(rotate_matrix_y, 5, axis=1).reshape(-1, 2, 5).transpose((0, 2, 1))
+        rotate_matrix_y = np.array(
+            [-np.sin(angle_0), np.cos(angle_0)]).transpose((1, 0))
+        rotate_matrix_y = np.repeat(
+            rotate_matrix_y, 5, axis=1).reshape(-1, 2, 5).transpose((0, 2, 1))
 
-        p_rotate_x = np.sum(rotate_matrix_x * p, axis=2)[:, :, np.newaxis]  # N*5*1
-        p_rotate_y = np.sum(rotate_matrix_y * p, axis=2)[:, :, np.newaxis]  # N*5*1
+        p_rotate_x = np.sum(rotate_matrix_x * p,
+                            axis=2)[:, :, np.newaxis]  # N*5*1
+        p_rotate_y = np.sum(rotate_matrix_y * p,
+                            axis=2)[:, :, np.newaxis]  # N*5*1
 
         p_rotate = np.concatenate([p_rotate_x, p_rotate_y], axis=2)  # N*5*2
 
@@ -432,14 +451,20 @@ def restore_rectangle_rbox(origin, geometry):
                       -d_1[:, 1], -d_1[:, 2]])
         p = p.transpose((1, 0)).reshape((-1, 5, 2))  # N*5*2
 
-        rotate_matrix_x = np.array([np.cos(-angle_1), -np.sin(-angle_1)]).transpose((1, 0))
-        rotate_matrix_x = np.repeat(rotate_matrix_x, 5, axis=1).reshape(-1, 2, 5).transpose((0, 2, 1))  # N*5*2
+        rotate_matrix_x = np.array(
+            [np.cos(-angle_1), -np.sin(-angle_1)]).transpose((1, 0))
+        rotate_matrix_x = np.repeat(
+            rotate_matrix_x, 5, axis=1).reshape(-1, 2, 5).transpose((0, 2, 1))  # N*5*2
 
-        rotate_matrix_y = np.array([np.sin(-angle_1), np.cos(-angle_1)]).transpose((1, 0))
-        rotate_matrix_y = np.repeat(rotate_matrix_y, 5, axis=1).reshape(-1, 2, 5).transpose((0, 2, 1))
+        rotate_matrix_y = np.array(
+            [np.sin(-angle_1), np.cos(-angle_1)]).transpose((1, 0))
+        rotate_matrix_y = np.repeat(
+            rotate_matrix_y, 5, axis=1).reshape(-1, 2, 5).transpose((0, 2, 1))
 
-        p_rotate_x = np.sum(rotate_matrix_x * p, axis=2)[:, :, np.newaxis]  # N*5*1
-        p_rotate_y = np.sum(rotate_matrix_y * p, axis=2)[:, :, np.newaxis]  # N*5*1
+        p_rotate_x = np.sum(rotate_matrix_x * p,
+                            axis=2)[:, :, np.newaxis]  # N*5*1
+        p_rotate_y = np.sum(rotate_matrix_y * p,
+                            axis=2)[:, :, np.newaxis]  # N*5*1
 
         p_rotate = np.concatenate([p_rotate_x, p_rotate_y], axis=2)  # N*5*2
 
@@ -476,16 +501,21 @@ def generate_rbox(im_size, polys, tags):
             r[i] = min(np.linalg.norm(poly[i] - poly[(i + 1) % 4]),
                        np.linalg.norm(poly[i] - poly[(i - 1) % 4]))
         # score map
-        shrinked_poly = shrink_poly(poly.copy(), r).astype(np.int32)[np.newaxis, :, :]
+        shrinked_poly = shrink_poly(poly.copy(), r).astype(np.int32)[
+            np.newaxis, :, :]
         cv2.fillPoly(score_map, shrinked_poly, 1)
         cv2.fillPoly(poly_mask, shrinked_poly, poly_idx + 1)
         # if the poly is too small, then ignore it during training
-        poly_h = min(np.linalg.norm(poly[0] - poly[3]), np.linalg.norm(poly[1] - poly[2]))
-        poly_w = min(np.linalg.norm(poly[0] - poly[1]), np.linalg.norm(poly[2] - poly[3]))
+        poly_h = min(np.linalg.norm(
+            poly[0] - poly[3]), np.linalg.norm(poly[1] - poly[2]))
+        poly_w = min(np.linalg.norm(
+            poly[0] - poly[1]), np.linalg.norm(poly[2] - poly[3]))
         if min(poly_h, poly_w) < FLAGS.min_text_size:
-            cv2.fillPoly(training_mask, poly.astype(np.int32)[np.newaxis, :, :], 0)
+            cv2.fillPoly(training_mask, poly.astype(
+                np.int32)[np.newaxis, :, :], 0)
         if tag:
-            cv2.fillPoly(training_mask, poly.astype(np.int32)[np.newaxis, :, :], 0)
+            cv2.fillPoly(training_mask, poly.astype(
+                np.int32)[np.newaxis, :, :], 0)
 
         xy_in_poly = np.argwhere(poly_mask == (poly_idx + 1))
         # if geometry == 'RBOX':
@@ -522,16 +552,19 @@ def generate_rbox(im_size, polys, tags):
                 if forward_edge[1] == 0:
                     forward_opposite = [1, 0, -p0[0]]
                 else:
-                    forward_opposite = [forward_edge[0], -1, p0[1] - forward_edge[0] * p0[0]]
+                    forward_opposite = [forward_edge[0], -
+                                        1, p0[1] - forward_edge[0] * p0[0]]
             else:
                 # across p3
                 if forward_edge[1] == 0:
                     forward_opposite = [1, 0, -p3[0]]
                 else:
-                    forward_opposite = [forward_edge[0], -1, p3[1] - forward_edge[0] * p3[0]]
+                    forward_opposite = [forward_edge[0], -
+                                        1, p3[1] - forward_edge[0] * p3[0]]
             new_p0 = line_cross_point(forward_opposite, edge)
             new_p3 = line_cross_point(forward_opposite, edge_opposite)
-            fitted_parallelograms.append([new_p0, new_p1, new_p2, new_p3, new_p0])
+            fitted_parallelograms.append(
+                [new_p0, new_p1, new_p2, new_p3, new_p0])
             # or move backward edge
             new_p0 = p0
             new_p1 = p1
@@ -543,18 +576,22 @@ def generate_rbox(im_size, polys, tags):
                 if backward_edge[1] == 0:
                     backward_opposite = [1, 0, -p1[0]]
                 else:
-                    backward_opposite = [backward_edge[0], -1, p1[1] - backward_edge[0] * p1[0]]
+                    backward_opposite = [
+                        backward_edge[0], -1, p1[1] - backward_edge[0] * p1[0]]
             else:
                 # across p2
                 if backward_edge[1] == 0:
                     backward_opposite = [1, 0, -p2[0]]
                 else:
-                    backward_opposite = [backward_edge[0], -1, p2[1] - backward_edge[0] * p2[0]]
+                    backward_opposite = [
+                        backward_edge[0], -1, p2[1] - backward_edge[0] * p2[0]]
             new_p1 = line_cross_point(backward_opposite, edge)
             new_p2 = line_cross_point(backward_opposite, edge_opposite)
-            fitted_parallelograms.append([new_p0, new_p1, new_p2, new_p3, new_p0])
+            fitted_parallelograms.append(
+                [new_p0, new_p1, new_p2, new_p3, new_p0])
         areas = [Polygon(t).area for t in fitted_parallelograms]
-        parallelogram = np.array(fitted_parallelograms[np.argmin(areas)][:-1], dtype=np.float32)
+        parallelogram = np.array(
+            fitted_parallelograms[np.argmin(areas)][:-1], dtype=np.float32)
         # sort thie polygon
         parallelogram_coord_sum = np.sum(parallelogram, axis=1)
         min_coord_idx = np.argmin(parallelogram_coord_sum)
@@ -601,14 +638,23 @@ def generator(input_size=512, batch_size=32,
                 im = cv2.imread(im_fn)
                 # print im_fn
                 h, w, _ = im.shape
-                txt_fn = im_fn.replace(os.path.basename(im_fn).split('.')[1], 'txt')
+                txt_fn = im_fn.replace(
+                    os.path.basename(im_fn).split('.')[1], 'txt')
                 if not os.path.exists(txt_fn):
                     print('text file {} does not exists'.format(txt_fn))
                     continue
 
                 text_polys, text_tags = load_annoataion(txt_fn)
 
-                text_polys, text_tags = check_and_validate_polys(text_polys, text_tags, (h, w))
+                text_polys, text_tags = check_and_validate_polys(
+                    text_polys, text_tags, (h, w))
+                # Random rotation for both image and bounding box
+                # Choose rotation angle randomly from -50 to 50 with 0 angle having 50% probability.
+                rotation_angle = choice(
+                    np.arange(-50, 50, 10), p=[0.05, 0.05, 0.05, 0.05, 0.05, 0.5, 0.05, 0.05, 0.05, 0.05, 0.05])
+                im = rotate_img(im, rotation_angle)
+                text_polys = rotate_box(text_polys, rotation_angle, w//2, h//2, h, w)
+
                 # if text_polys.shape[0] == 0:
                 #     continue
                 # random scale this image
@@ -619,22 +665,28 @@ def generator(input_size=512, batch_size=32,
                 # random crop a area from image
                 if np.random.rand() < background_ratio:
                     # crop background
-                    im, text_polys, text_tags = crop_area(im, text_polys, text_tags, crop_background=True)
+                    im, text_polys, text_tags = crop_area(
+                        im, text_polys, text_tags, crop_background=True)
                     if text_polys.shape[0] > 0:
                         # cannot find background
                         continue
                     # pad and resize image
                     new_h, new_w, _ = im.shape
                     max_h_w_i = np.max([new_h, new_w, input_size])
-                    im_padded = np.zeros((max_h_w_i, max_h_w_i, 3), dtype=np.uint8)
+                    im_padded = np.zeros(
+                        (max_h_w_i, max_h_w_i, 3), dtype=np.uint8)
                     im_padded[:new_h, :new_w, :] = im.copy()
                     im = cv2.resize(im_padded, dsize=(input_size, input_size))
-                    score_map = np.zeros((input_size, input_size), dtype=np.uint8)
+                    score_map = np.zeros(
+                        (input_size, input_size), dtype=np.uint8)
                     geo_map_channels = 5 if FLAGS.geometry == 'RBOX' else 8
-                    geo_map = np.zeros((input_size, input_size, geo_map_channels), dtype=np.float32)
-                    training_mask = np.ones((input_size, input_size), dtype=np.uint8)
+                    geo_map = np.zeros(
+                        (input_size, input_size, geo_map_channels), dtype=np.float32)
+                    training_mask = np.ones(
+                        (input_size, input_size), dtype=np.uint8)
                 else:
-                    im, text_polys, text_tags = crop_area(im, text_polys, text_tags, crop_background=False)
+                    im, text_polys, text_tags = crop_area(
+                        im, text_polys, text_tags, crop_background=False)
                     if text_polys.shape[0] == 0:
                         continue
                     h, w, _ = im.shape
@@ -642,7 +694,8 @@ def generator(input_size=512, batch_size=32,
                     # pad the image to the training input size or the longer side of image
                     new_h, new_w, _ = im.shape
                     max_h_w_i = np.max([new_h, new_w, input_size])
-                    im_padded = np.zeros((max_h_w_i, max_h_w_i, 3), dtype=np.uint8)
+                    im_padded = np.zeros(
+                        (max_h_w_i, max_h_w_i, 3), dtype=np.uint8)
                     im_padded[:new_h, :new_w, :] = im.copy()
                     im = im_padded
                     # resize the image to input size
@@ -655,7 +708,8 @@ def generator(input_size=512, batch_size=32,
                     text_polys[:, :, 0] *= resize_ratio_3_x
                     text_polys[:, :, 1] *= resize_ratio_3_y
                     new_h, new_w, _ = im.shape
-                    score_map, geo_map, training_mask = generate_rbox((new_h, new_w), text_polys, text_tags)
+                    score_map, geo_map, training_mask = generate_rbox(
+                        (new_h, new_w), text_polys, text_tags)
 
                 if vis:
                     fig, axs = plt.subplots(3, 2, figsize=(20, 30))
@@ -676,11 +730,14 @@ def generator(input_size=512, batch_size=32,
                     axs[0, 0].set_xticks([])
                     axs[0, 0].set_yticks([])
                     for poly in text_polys:
-                        poly_h = min(abs(poly[3, 1] - poly[0, 1]), abs(poly[2, 1] - poly[1, 1]))
-                        poly_w = min(abs(poly[1, 0] - poly[0, 0]), abs(poly[2, 0] - poly[3, 0]))
+                        poly_h = min(
+                            abs(poly[3, 1] - poly[0, 1]), abs(poly[2, 1] - poly[1, 1]))
+                        poly_w = min(
+                            abs(poly[1, 0] - poly[0, 0]), abs(poly[2, 0] - poly[3, 0]))
                         axs[0, 0].add_artist(Patches.Polygon(
                             poly, facecolor='none', edgecolor='green', linewidth=2, linestyle='-', fill=True))
-                        axs[0, 0].text(poly[0, 0], poly[0, 1], '{:.0f}-{:.0f}'.format(poly_h, poly_w), color='purple')
+                        axs[0, 0].text(
+                            poly[0, 0], poly[0, 1], '{:.0f}-{:.0f}'.format(poly_h, poly_w), color='purple')
                     axs[0, 1].imshow(score_map[::, ::])
                     axs[0, 1].set_xticks([])
                     axs[0, 1].set_yticks([])
@@ -702,9 +759,11 @@ def generator(input_size=512, batch_size=32,
 
                 images.append(im[:, :, ::-1].astype(np.float32))
                 image_fns.append(im_fn)
-                score_maps.append(score_map[::4, ::4, np.newaxis].astype(np.float32))
+                score_maps.append(
+                    score_map[::4, ::4, np.newaxis].astype(np.float32))
                 geo_maps.append(geo_map[::4, ::4, :].astype(np.float32))
-                training_masks.append(training_mask[::4, ::4, np.newaxis].astype(np.float32))
+                training_masks.append(
+                    training_mask[::4, ::4, np.newaxis].astype(np.float32))
 
                 if len(images) == batch_size:
                     yield images, image_fns, score_maps, geo_maps, training_masks
@@ -721,7 +780,8 @@ def generator(input_size=512, batch_size=32,
 
 def get_batch(num_workers, **kwargs):
     try:
-        enqueuer = GeneratorEnqueuer(generator(**kwargs), use_multiprocessing=True)
+        enqueuer = GeneratorEnqueuer(
+            generator(**kwargs), use_multiprocessing=True)
         print('Generator use 10 batches for buffering, this may take a while, you can tune this yourself.')
         enqueuer.start(max_queue_size=10, workers=num_workers)
         generator_output = None
@@ -737,7 +797,6 @@ def get_batch(num_workers, **kwargs):
     finally:
         if enqueuer is not None:
             enqueuer.stop()
-
 
 
 if __name__ == '__main__':
