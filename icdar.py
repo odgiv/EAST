@@ -655,7 +655,8 @@ def generator(input_size=512, batch_size=32,
                     np.arange(-50, 60, 10), p=[0.05, 0.05, 0.05, 0.05, 0.05, 0.5, 0.05, 0.05, 0.05, 0.05, 0.05])
                 im = rotate_img(im, rotation_angle)
                 rotated_poly_boxes = []
-
+                print(text_polys)
+                
                 for text_poly in text_polys:
 
                     text_poly = rotate_box(
