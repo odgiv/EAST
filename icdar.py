@@ -648,13 +648,22 @@ def generator(input_size=512, batch_size=32,
 
                 text_polys, text_tags = check_and_validate_polys(
                     text_polys, text_tags, (h, w))
+                print(text_polys)
                 # Random rotation for both image and bounding box
                 # Choose rotation angle randomly from -50 to 50 with 0 angle having 50% probability.
                 rotation_angle = choice(
                     np.arange(-50, 60, 10), p=[0.05, 0.05, 0.05, 0.05, 0.05, 0.5, 0.05, 0.05, 0.05, 0.05, 0.05])
                 im = rotate_img(im, rotation_angle)
-                text_polys = rotate_box(text_polys, rotation_angle, w//2, h//2, h, w)
+                rotated_poly_boxes = []
 
+                for text_poly in text_polys:
+
+                    text_poly = rotate_box(
+                        text_poly.flatten(), rotation_angle, w//2, h//2, h, w)
+                    rotated_poly_boxes.append(np.asarray(text_poly).reshape((-1, 2)))                    
+
+                text_polys = np.array(rotated_poly_boxes, dtype=np.float32)
+                print(text_polys)
                 # if text_polys.shape[0] == 0:
                 #     continue
                 # random scale this image
