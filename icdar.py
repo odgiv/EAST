@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as Patches
 from shapely.geometry import Polygon
 from numpy.random import choice
-from img_util import rotate_box, rotate_img, random_crop
+from img_util import rotate_box, rotate_img, random_crop, chain_random_image_enhancements
+
 
 import tensorflow as tf
 
@@ -649,7 +650,9 @@ def generator(input_size=512, batch_size=32,
                 text_polys, text_tags = check_and_validate_polys(
                     text_polys, text_tags, (h, w))
 
-                image, text_polys = random_crop(im, text_polys)
+                im, text_polys = random_crop(im, text_polys)
+
+                im = chain_random_image_enhancements(im)
 
                 # Random rotation for both image and bounding box
                 # Choose rotation angle randomly from -50 to 50 with 0 angle having 50% probability.
