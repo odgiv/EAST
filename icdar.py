@@ -657,7 +657,7 @@ def generator(input_size=512, batch_size=32,
                 # Random rotation for both image and bounding box
                 # Choose rotation angle randomly from -50 to 50 with 0 angle having 50% probability.
                 rotation_angle = choice(
-                    np.arange(-50, 60, 10), p=[0.05, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.05])
+                    np.arange(-50, 60, 10))
                 im = rotate_img(im, rotation_angle)
                 rotated_poly_boxes = []
                 # print(text_polys)
