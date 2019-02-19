@@ -71,28 +71,28 @@ def random_crop(image, poly_bboxes):
 
 
 def random_sharpness(pil_image, range_of_factors=(0.0, 2.0)):
-    sharpness_factor = random.uniform(range_of_factors)
+    sharpness_factor = random.uniform(*range_of_factors)
     sharpness_enhancer = ImageEnhance.Sharpness(pil_image)
     pil_image = sharpness_enhancer.enhance(sharpness_factor)
     return pil_image
 
 
 def random_color(pil_image, range_of_factors=(0.0, 1.0)):
-    color_factor = random.uniform(range_of_factors)
+    color_factor = random.uniform(*range_of_factors)
     color_enhancer = ImageEnhance.Color(pil_image)
     pil_image = color_enhancer.enhance(color_factor)
     return pil_image
 
 
 def random_contrast(pil_image, range_of_factors=(0.5, 1.5)):
-    contrast_factor = random.uniform(range_of_factors)
+    contrast_factor = random.uniform(*range_of_factors)
     contrast_enhancer = ImageEnhance.Contrast(pil_image)
     pil_image = contrast_enhancer.enhance(contrast_factor)
     return pil_image
 
 
 def random_brightness(pil_image, range_of_factors=(0.5, 1.5)):
-    brightness_factor = random.uniform(range_of_factors)
+    brightness_factor = random.uniform(*range_of_factors)
     brightness_enhancer = ImageEnhance.Brightness(pil_image)
     pil_image = brightness_enhancer.enhance(brightness_factor)
     return pil_image
