@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as Patches
 from shapely.geometry import Polygon
 from numpy.random import choice
-from img_util import rotate_box, rotate_img
+from img_util import rotate_box, rotate_img, random_crop
 
 import tensorflow as tf
 
